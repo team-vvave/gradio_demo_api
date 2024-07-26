@@ -29,8 +29,8 @@ app.add_middleware(CORSMiddleware, allow_origins=origins, allow_credentials=True
 class TextItem(BaseModel):
     text_kor: str
 
-@app.post('/search-by-text', summary="(clip-retrieval) 텍스트로 이미지 검색",
-          description="한국어 문장을 입력하면 이미지를 검색합니다.")
+@app.post('/search-by-text', summary="(clip-retrieval) 텍스트(장면)으로 이미지 검색",
+          description="장면에 대한 한국어 문장을 입력하면 이미지를 검색합니다.")
 def api_search_by_text(req_json: TextItem) :
     text_kor = req_json.text_kor
     count = 5
@@ -41,16 +41,29 @@ def api_search_by_text(req_json: TextItem) :
     return {"text_en" : text_en,
             "search_list" : search_list}
 
-@app.post('/search-by-dialogue', summary="(chatgpt + LaBSE) 대사 텍스트로 이미지 검색",
-          description="한국어 문장을 입력하면 이미지를 검색합니다.")
+@app.post('/search-by-dialogue', summary="(chatgpt + LaBSE) 택스트(대사)로 이미지 검색",
+          description="대사에 대한 한국어 문장을 입력하면 이미지를 검색합니다.")
 def api_search_by_dialogue(req_json: TextItem) :
     text_kor = req_json.text_kor
     count = 5
 
     client = Client(f"http://localhost:{args.port}/demo")
-    search_list = client.predict(api_name="/search_by_query_func2", 
+    search_list = client.predict(api_name="/search_by_dialogue", 
                                  query=text_kor, count=count)
     return {"search_list" : search_list}
+
+
+@app.post('/search-by-final', summary="텍스트(장면 & 대사)로 이미지 검색",
+          description="한국어 문장을 입력하면 이미지를 검색합니다.")
+def api_search_by_final(req_json: TextItem) :
+    text_kor = req_json.text_kor
+    count = 5
+
+    client = Client(f"http://localhost:{args.port}/demo")
+    middle_text, search_list = client.predict(api_name="/search_by_final", 
+                                 input_text_kor=text_kor, input_count=count)
+    return {"middle_text": middle_text,
+            "search_list" : search_list}
 
 def final_search(input_text_kor, input_count) :
     query_info_dict = refine_query(input_text_kor)
@@ -90,10 +103,12 @@ with gr.Blocks() as demo :
         func1_btn_submit.click(fn=search_by_text,
                                inputs=[func1_input_text_kor, func1_input_count],
                                outputs=[func1_output_text_en, func1_output_list],
-                               concurrency_id='default').then(fn=parsing_json_for_display,
+                               concurrency_id='default',
+                               api_name='search_by_text').then(fn=parsing_json_for_display,
                                                               inputs=[func1_output_list],
                                                               outputs=[func1_output_gallery],
-                                                              concurrency_id='default')
+                                                              concurrency_id='default',
+                                                              show_api=False)
 
     with gr.Tab("dialogue search (chatgpt + LaBSE)") :
         with gr.Row() :
@@ -113,7 +128,8 @@ with gr.Blocks() as demo :
                                api_name='search_by_dialogue').then(fn=parsing_json_for_display,
                                                                       inputs=[func2_output_list],
                                                                       outputs=[func2_output_gallery],
-                                                                      concurrency_id='default')
+                                                                      concurrency_id='default',
+                                                                      show_api=False)
         
     with gr.Tab("text with image search (pic2word)") :
         with gr.Row() :
@@ -136,7 +152,8 @@ with gr.Blocks() as demo :
                                concurrency_id='default').then(fn=parsing_json_for_display,
                                                               inputs=[func3_output_list],
                                                               outputs=[func3_output_gallery],
-                                                              concurrency_id='default')
+                                                              concurrency_id='default',
+                                                              show_api=False)
         
     with gr.Tab("final search") :
         with gr.Row() :
@@ -153,10 +170,12 @@ with gr.Blocks() as demo :
         final_btn_submit.click(fn=final_search,
                                inputs=[final_input_text_kor, final_input_count],
                                outputs=[middle_text, final_output_list],
-                               concurrency_id='default').then(fn=parsing_json_for_display,
+                               concurrency_id='default',
+                               api_name='search_by_final').then(fn=parsing_json_for_display,
                                                               inputs=[final_output_list],
                                                               outputs=[final_output_gallery],
-                                                              concurrency_id='default')
+                                                              concurrency_id='default',
+                                                              show_api=False)
 
 demo.title = "웹툰검색데모"
 demo.queue(default_concurrency_limit=1)
