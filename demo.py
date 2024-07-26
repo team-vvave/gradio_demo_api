@@ -3,6 +3,7 @@ from PIL import Image
 import gradio as gr
 from gradio_client import Client
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import uvicorn
 import argparse
@@ -19,8 +20,23 @@ PORT=13131
 INDICE_PATH="index_h14"
 IMAGE_DIR = "../dataset_shared2/orig-result"
 
-app = FastAPI()
 translator = Translator()
+app = FastAPI()
+
+origins = [
+    "http://localhost:7000",
+    "http://localhost:17000",
+    "http://1.215.235.253:7000"
+    "http://1.215.235.253:17000"
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 class TextItem(BaseModel):
     text_kor: str
@@ -71,25 +87,36 @@ def parsing_json_for_display(search_list) :
 
 with gr.Blocks() as demo :
 
-    with gr.Row() :
+    with gr.Tab("text search (clip-retrieval)") :
+        with gr.Row() :
+            with gr.Column() :
+                func1_input_text_kor = gr.Text(label="Input (Kor)", info="한국어로 질문을 입력하세요", value="한 학생이 울고 있는 장면")
+                func1_input_count = gr.Slider(label="Max count", info="응답받는 최대 개수를 설정합니다.", minimum=1, maximum=100, step=1, value=10)
+                func1_btn_submit = gr.Button(value="Submit", variant='primary')
 
+            with gr.Column() :
+                func1_output_text_en = gr.Text(label="Input (En)", info="한국어를 영어로 번역", interactive=False)
+                func1_output_list = gr.Json(label="Outpus")
+                func1_output_gallery = gr.Gallery(label="Output images", columns=5)
+
+        func1_btn_submit.click(fn=search_by_query,
+                        inputs=[func1_input_text_kor, func1_input_count],
+                        outputs=[func1_output_text_en, func1_output_list],
+                        concurrency_id='default').then(fn=parsing_json_for_display,
+                                                        inputs=[func1_output_list],
+                                                        outputs=[func1_output_gallery],
+                                                        concurrency_id='default')
+
+    with gr.Tab("text search (chatgpt + LaBSE)") :
         with gr.Column() :
-            input_text_kor = gr.Text(label="Input (Kor)", info="한국어로 질문을 입력하세요", value="한 학생이 울고 있는 장면")
-            input_count = gr.Slider(label="Max count", info="응답받는 최대 개수를 설정합니다.", minimum=1, maximum=100, step=1, value=10)
-            btn_submit = gr.Button(value="Submit", variant='primary')
+                func1_input_text_kor = gr.Text(label="Input (Kor)", info="한국어로 질문을 입력하세요", value="한 학생이 울고 있는 장면")
+                func1_input_count = gr.Slider(label="Max count", info="응답받는 최대 개수를 설정합니다.", minimum=1, maximum=100, step=1, value=10)
+                func1_btn_submit = gr.Button(value="Submit", variant='primary')
 
-        with gr.Column() :
-            output_text_en = gr.Text(label="Input (En)", info="한국어를 영어로 번역", interactive=False)
-            output_list = gr.Json(label="Outpus")
-            output_gallery = gr.Gallery(label="Output images", columns=5)
 
-    btn_submit.click(fn=search_by_query,
-                     inputs=[input_text_kor, input_count],
-                     outputs=[output_text_en, output_list],
-                     concurrency_id='default').then(fn=parsing_json_for_display,
-                                                    inputs=[output_list],
-                                                    outputs=[output_gallery],
-                                                    concurrency_id='default')
+
+
+
 
 demo.title = "웹툰검색데모"
 demo.queue(default_concurrency_limit=1)

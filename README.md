@@ -3,8 +3,18 @@
 
 ### Installation
 ```sh
-pip install googletrans-py 
+conda create -n demo python=3.10
+conda activate demo
+
+conda install ipykernel pillow
+pip install clip-retrieval img2dataset
+
+pip install googletrans-py
+pip install langchain langchain-huggingface langchain-community
+pip install openai==0.28
+
 ```
+참고
 - https://github.com/ShivangKakkar/googletrans
 
 ### Run clip-retrieval
