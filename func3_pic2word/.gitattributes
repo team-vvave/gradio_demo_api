@@ -1,0 +1,2 @@
+pic2word_model.pt filter=lfs diff=lfs merge=lfs -text
+code/third_party/open_clip/bpe_simple_vocab_16e6.txt.gz filter=lfs diff=lfs merge=lfs -text
