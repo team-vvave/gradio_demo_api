@@ -41,7 +41,7 @@ def api_search_by_text(req_json: TextItem) :
     return {"text_en" : text_en,
             "search_list" : search_list}
 
-@app.post('/search-by-dialogue', summary="대사 텍스트로 이미지 검색",
+@app.post('/search-by-dialogue', summary="(chatgpt + LaBSE) 대사 텍스트로 이미지 검색",
           description="한국어 문장을 입력하면 이미지를 검색합니다.")
 def api_search_by_dialogue(req_json: TextItem) :
     text_kor = req_json.text_kor
@@ -52,23 +52,18 @@ def api_search_by_dialogue(req_json: TextItem) :
                                  query=text_kor, count=count)
     return {"search_list" : search_list}
 
-
 def final_search(input_text_kor, input_count) :
     query_info_dict = refine_query(input_text_kor)
     scene = query_info_dict["장면"]
     dialogue = query_info_dict["대사"]
     character = query_info_dict["등장인물"]
 
-    client = Client(f"http://localhost:{args.port}/demo")
-    if dialogue:
-        search_list = client.predict(api_name="/search_by_dialogue", 
-                                     query=dialogue, count=input_count)
-        return {"search_list" : search_list}
-    else:
-        text_en, search_list = client.predict(api_name="/search_by_text",
-                                              input_text_kor=scene, input_count=input_count)
-        return {"text_en" : text_en,
-                "search_list" : search_list}
+    if dialogue :        
+        search_list = search_by_dialogue(query=dialogue, count=input_count)
+        return f'{query_info_dict}\n[search_by_dialogue]', search_list
+    else:        
+        text_en, search_list = search_by_text(input_text_kor=scene, input_count=input_count)
+        return f'{query_info_dict}\n[search_by_text]\n{text_en}', search_list
 
 def parsing_json_for_display(search_list) :
     outputs = []
@@ -103,7 +98,7 @@ with gr.Blocks() as demo :
     with gr.Tab("dialogue search (chatgpt + LaBSE)") :
         with gr.Row() :
             with gr.Column() :
-                func2_input_text_kor = gr.Text(label="Input (Kor)", info="한국어로 질문을 입력하세요", value="한 학생이 울고 있는 장면")
+                func2_input_text_kor = gr.Text(label="Input (Kor)", info="한국어로 질문을 입력하세요", value="안경 낀 사람 때리면 살인 대사 몇화인지 알려주세요")
                 func2_input_count = gr.Slider(label="Max count", info="응답받는 최대 개수를 설정합니다.", minimum=1, maximum=100, step=1, value=2)
                 func2_btn_submit = gr.Button(value="Submit", variant='primary')
 
@@ -151,13 +146,13 @@ with gr.Blocks() as demo :
                 final_btn_submit = gr.Button(value="Submit", variant='primary')
 
             with gr.Column() :
-                final_output_text_en = gr.Text(label="Input (En)", info="한국어를 영어로 번역", interactive=False)
+                middle_text = gr.Text(label="Middle text", info="중간 과정의 텍스트")
                 final_output_list = gr.Json(label="Outpus")
-                final_output_gallery = gr.Gallery(label="Output images", columns=5, interactive=False)
+                final_output_gallery = gr.Gallery(label="Output images", columns=5)
 
         final_btn_submit.click(fn=final_search,
                                inputs=[final_input_text_kor, final_input_count],
-                               outputs=[final_output_text_en, final_output_list],
+                               outputs=[middle_text, final_output_list],
                                concurrency_id='default').then(fn=parsing_json_for_display,
                                                               inputs=[final_output_list],
                                                               outputs=[final_output_gallery],
