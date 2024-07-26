@@ -25,25 +25,13 @@ IMAGE_DIR = "../dataset_shared2/orig-result"
 translator = Translator()
 app = FastAPI()
 
-origins = [
-    "http://localhost:7000",
-    "http://localhost:17000",
-    "http://1.215.235.253:7000"
-    "http://1.215.235.253:17000"
-]
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+origins = ["http://localhost:3000"]
+app.add_middleware(CORSMiddleware, allow_origins=origins, allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 
 class TextItem(BaseModel):
     text_kor: str
 
-@app.post('/search-by-text', summary="텍스트로 이미지 검색",
+@app.post('/search-by-text', summary="(clip-retrieval) 텍스트로 이미지 검색",
           description="한국어 문장을 입력하면 영어로 번역된 문장으로 이미지를 검색합니다.")
 def api_search_by_query(req_json: TextItem) :
     text_kor = req_json.text_kor
@@ -51,9 +39,20 @@ def api_search_by_query(req_json: TextItem) :
 
     client = Client(f"http://localhost:{args.port}/demo")
     text_en, search_list = client.predict(api_name="/search_by_query", 
-                                 input_text_kor=text_kor, input_count=count)
+                                          input_text_kor=text_kor, input_count=count)
     return {"text_en" : text_en,
             "search_list" : search_list}
+
+@app.post('/search-by-text-func2', summary="(chatgpt + LaBSE) 텍스트로 이미지 검색",
+          description="한국어 문장을 입력하면 이미지를 검색합니다.")
+def api_search_by_query_func2(req_json: TextItem) :
+    text_kor = req_json.text_kor
+    count = 5
+
+    client = Client(f"http://localhost:{args.port}/demo")
+    search_list = client.predict(api_name="/search_by_query_func2", 
+                                 query=text_kor, count=count)
+    return {"search_list" : search_list}
 
 def search_by_query(input_text_kor, input_count) :
     text_en = translator.translate(input_text_kor, src='ko', dest='en').text
