@@ -3,6 +3,7 @@ from PIL import Image
 import gradio as gr
 from gradio_client import Client
 from fastapi import FastAPI
+from pydantic import BaseModel
 import uvicorn
 import argparse
 from clip_retrieval.clip_client import ClipClient
@@ -21,9 +22,15 @@ IMAGE_DIR = "../dataset_shared2/orig-result"
 app = FastAPI()
 translator = Translator()
 
+class TextItem(BaseModel):
+    text_kor: str
+
 @app.post('/search-by-text', summary="텍스트로 이미지 검색",
           description="한국어 문장을 입력하면 영어로 번역된 문장으로 이미지를 검색합니다.")
-def api_search_by_query(text_kor: str, count: int) :
+def api_search_by_query(req_json: TextItem) :
+    text_kor = req_json.text_kor
+    count = 5
+
     client = Client(f"http://localhost:{args.port}/demo")
     text_en, search_list = client.predict(api_name="/search_by_query", 
                                  input_text_kor=text_kor, input_count=count)
@@ -74,7 +81,7 @@ with gr.Blocks() as demo :
         with gr.Column() :
             output_text_en = gr.Text(label="Input (En)", info="한국어를 영어로 번역", interactive=False)
             output_list = gr.Json(label="Outpus")
-            output_gallery = gr.Gallery(label="Output images")
+            output_gallery = gr.Gallery(label="Output images", columns=5)
 
     btn_submit.click(fn=search_by_query,
                      inputs=[input_text_kor, input_count],

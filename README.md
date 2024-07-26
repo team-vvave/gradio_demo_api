@@ -9,11 +9,16 @@ pip install googletrans-py
 
 ### Run clip-retrieval
 ```sh
-clip-retrieval back --port 13131 --indices-paths indices_paths.json --clip_model hf_clip:laion/CLIP-ViT-H-14-laion2B-s32B-b79K --provide_safety_model False --provide_violence_detector False --enable_mclip_option False --provide_aesthetic_embeddings False
+tmux new -s vvave_clip_retrieval
 
+conda activate clipretrival
+clip-retrieval back --port 13131 --indices-paths indices_paths.json --clip_model hf_clip:laion/CLIP-ViT-H-14-laion2B-s32B-b79K --provide_safety_model False --provide_violence_detector False --enable_mclip_option False --provide_aesthetic_embeddings False
 ```
 
 ### Run demo
 ```sh
+tmux new -s vvave_demo_api
+
+conda activate clipretrival
 python demo.py --host 0.0.0.0 --port 7000 --workers 1
 ```
