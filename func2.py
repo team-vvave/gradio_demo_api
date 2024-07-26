@@ -1,5 +1,8 @@
 import os
 import json
+import openai
+with open("secret.txt", 'r') as f :
+    openai.api_key = f.readline().strip()
 from langchain_core.documents import Document
 from langchain_community.vectorstores import FAISS
 from langchain_huggingface import HuggingFaceEmbeddings
@@ -73,3 +76,28 @@ def search_by_dialogue(query, count):
         search_result.append(temp)    
         
     return search_result
+
+def refine_query(query):
+    prompt = f"""질문에서 아래 조건에 따라 '장면', '대사', '등장인물'을 key 값으로 가지는 JSON 데이터를 반환해줘.
+
+    1. 장면 추출: 등장인물의 이름 대신 등장인물의 성별로 대체해서 작성해줘.
+    - 한유현, 강효민, 차태석: 남성
+    - 박가을: 여성
+    2. 대사 추출: 만약 질문에서 웹툰 대사가 언급됐다면, 등장인물의 실제 대사처럼 재구성해서 출력하고, 없으면 None을 반환해줘.
+    3. 주인공 이름 추출:  만약 질문에서 등장인물의 이름이 등장한 경우, 등장인물의 이름을 리스트 형태로 반환하고, 없으면 None을 반환해줘. 이름은 반드시 3글자로 반환해줘.
+
+    질문: {query}"""
+    
+    response = openai.ChatCompletion.create(
+        max_tokens=256,
+        response_format = {"type": "json_object"},
+        model="gpt-4-1106-preview",
+        messages=[
+            {"role": "system", "content": "You are a helpful assistant who responds in json."},
+            {"role": "user", "content": prompt},
+        ]
+    )
+
+    result = response.choices[0].message.content
+    result_dict = json.loads(result)
+    return result_dict
