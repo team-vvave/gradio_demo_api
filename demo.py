@@ -113,7 +113,7 @@ with gr.Blocks() as demo :
         with gr.Row() :
             with gr.Column() :
                 func2_input_text_kor = gr.Text(label="Input (Kor)", info="한국어로 질문을 입력하세요", value="한 학생이 울고 있는 장면")
-                func2_input_count = gr.Slider(label="Max count", info="응답받는 최대 개수를 설정합니다.", minimum=1, maximum=100, step=1, value=10)
+                func2_input_count = gr.Slider(label="Max count", info="응답받는 최대 개수를 설정합니다.", minimum=1, maximum=100, step=1, value=5)
                 func2_btn_submit = gr.Button(value="Submit", variant='primary')
 
             with gr.Column() :

@@ -4,7 +4,8 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_core.documents import Document
 from langchain_community.vectorstores import FAISS
 import openai
-openai.api_key = "sk-proj-?"
+with open("secret.txt", 'r') as f :
+    openai.api_key = f.readline().strip()
 
 embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/LaBSE")
 
@@ -85,7 +86,7 @@ def search_query(query: str, count: int):
                 'similarity': score}
         search_result.append(temp)    
     
-    return list(reversed(search_result))
+    return search_result
 
 # t = search_query("한유현이 나오는 장면", k=4)
 # t
