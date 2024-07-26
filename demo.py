@@ -10,7 +10,7 @@ import argparse
 from clip_retrieval.clip_client import ClipClient
 from googletrans import Translator
 
-from text_retrieval import search_query
+from func2 import search_query
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--host", type=str, default="localhost")
@@ -18,14 +18,14 @@ parser.add_argument("--port", type=int, default=7000)
 parser.add_argument("--workers", type=int, default=1)
 args = parser.parse_args()
 
-PORT=13131
+CLIP_PORT=13131
 INDICE_PATH="index_h14"
 IMAGE_DIR = "../dataset_shared2/orig-result"
 
 translator = Translator()
 app = FastAPI()
 
-origins = ["http://localhost:3000"]
+origins = ["*"]
 app.add_middleware(CORSMiddleware, allow_origins=origins, allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 
 class TextItem(BaseModel):
@@ -57,7 +57,7 @@ def api_search_by_query_func2(req_json: TextItem) :
 def search_by_query(input_text_kor, input_count) :
     text_en = translator.translate(input_text_kor, src='ko', dest='en').text
 
-    client = ClipClient(url=f"http://localhost:{PORT}/knn-service", indice_name=INDICE_PATH,
+    client = ClipClient(url=f"http://localhost:{CLIP_PORT}/knn-service", indice_name=INDICE_PATH,
                         num_images=input_count, deduplicate=False,
                         use_safety_model=False, use_violence_detector=False)
 
@@ -127,6 +127,9 @@ with gr.Blocks() as demo :
                                                                       inputs=[func2_output_list],
                                                                       outputs=[func2_output_gallery],
                                                                       concurrency_id='default')
+        
+
+    # with gr.Tab("text with image search (pic2word)") :
 
 demo.title = "웹툰검색데모"
 demo.queue(default_concurrency_limit=1)
