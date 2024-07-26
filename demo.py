@@ -10,6 +10,8 @@ import argparse
 from clip_retrieval.clip_client import ClipClient
 from googletrans import Translator
 
+from text_retrieval import search_query
+
 parser = argparse.ArgumentParser()
 parser.add_argument("--host", type=str, default="localhost")
 parser.add_argument("--port", type=int, default=7000)
@@ -108,15 +110,24 @@ with gr.Blocks() as demo :
                                                         concurrency_id='default')
 
     with gr.Tab("text search (chatgpt + LaBSE)") :
-        with gr.Column() :
-                func1_input_text_kor = gr.Text(label="Input (Kor)", info="한국어로 질문을 입력하세요", value="한 학생이 울고 있는 장면")
-                func1_input_count = gr.Slider(label="Max count", info="응답받는 최대 개수를 설정합니다.", minimum=1, maximum=100, step=1, value=10)
-                func1_btn_submit = gr.Button(value="Submit", variant='primary')
+        with gr.Row() :
+            with gr.Column() :
+                func2_input_text_kor = gr.Text(label="Input (Kor)", info="한국어로 질문을 입력하세요", value="한 학생이 울고 있는 장면")
+                func2_input_count = gr.Slider(label="Max count", info="응답받는 최대 개수를 설정합니다.", minimum=1, maximum=100, step=1, value=10)
+                func2_btn_submit = gr.Button(value="Submit", variant='primary')
 
+            with gr.Column() :
+                func2_output_list = gr.Json(label="Outpus")
+                func2_output_gallery = gr.Gallery(label="Output images", columns=5)
 
-
-
-
+        func2_btn_submit.click(fn=search_query,
+                               inputs=[func2_input_text_kor, func2_input_count],
+                               outputs=[func2_output_list],
+                               concurrency_id='default',
+                               api_name='search_by_query_func2').then(fn=parsing_json_for_display,
+                                                                      inputs=[func2_output_list],
+                                                                      outputs=[func2_output_gallery],
+                                                                      concurrency_id='default')
 
 demo.title = "웹툰검색데모"
 demo.queue(default_concurrency_limit=1)

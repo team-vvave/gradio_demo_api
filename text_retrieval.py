@@ -33,11 +33,11 @@ def load_scene_db(data_path, db_name):
         db = FAISS.from_documents(list_of_documents, embeddings)
         db.save_local(db_name)
     else:
-        print("Load pre-saved FAISS index")
+        # print("Load pre-saved FAISS index")
         db = FAISS.load_local(db_name, embeddings, allow_dangerous_deserialization=True)
     return db
 
-def search_query(query: str, k: int):
+def search_query(query: str, count: int):
     prompt = f"""질문에서 아래 조건에 따라 '장면', '대사', '등장인물'을 key 값으로 가지는 JSON 데이터를 반환해줘.
 
     1. 장면 추출: 등장인물의 이름 대신 등장인물의 성별로 대체해서 작성해줘.
@@ -64,22 +64,26 @@ def search_query(query: str, k: int):
     dialogue = result_dict["대사"]
     character = result_dict["등장인물"]
     
-    print(result)
+    # print(result)
     
     # 장면 검색
     db = load_scene_db(
         data_path="./data/scene_data.json",
         db_name="faiss_index_scene"
     )
-    results_with_scores = db.similarity_search_with_score(scene, k=4)
+    results_with_scores = db.similarity_search_with_score(scene, k=count)
     
     search_result = []
     for doc, score in results_with_scores :
+        episode, num = doc.metadata['webtoon_num'], doc.metadata['cut_num']
+        image_path = f"{str(episode).zfill(4)}/{str(num).zfill(3)}.jpg"
+
         temp = {'content': doc.page_content,
-                'webtoon_num': doc.metadata['webtoon_num'],
-                'cut_num': doc.metadata['cut_num'],
-                'score': score}
-        search_result.append(temp)
+                'image_path': image_path,
+                'episode': episode,
+                'num': num,
+                'similarity': score}
+        search_result.append(temp)    
     
     return list(reversed(search_result))
 

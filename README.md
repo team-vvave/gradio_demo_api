@@ -31,4 +31,7 @@ tmux new -s vvave_demo_api
 
 conda activate clipretrival
 python demo.py --host 0.0.0.0 --port 7000 --workers 1
+
+# 로컬 테스트
+python demo.py --port 7777 --workers 1
 ```
