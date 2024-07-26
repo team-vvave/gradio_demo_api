@@ -11,6 +11,7 @@ from clip_retrieval.clip_client import ClipClient
 from googletrans import Translator
 
 from func2 import search_query
+from func3 import get_target_paths, do_retrieve
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--host", type=str, default="localhost")
@@ -98,7 +99,7 @@ with gr.Blocks() as demo :
             with gr.Column() :
                 func1_output_text_en = gr.Text(label="Input (En)", info="한국어를 영어로 번역", interactive=False)
                 func1_output_list = gr.Json(label="Outpus")
-                func1_output_gallery = gr.Gallery(label="Output images", columns=5)
+                func1_output_gallery = gr.Gallery(label="Output images", columns=5, interactive=False)
 
         func1_btn_submit.click(fn=search_by_query,
                         inputs=[func1_input_text_kor, func1_input_count],
@@ -117,7 +118,7 @@ with gr.Blocks() as demo :
 
             with gr.Column() :
                 func2_output_list = gr.Json(label="Outpus")
-                func2_output_gallery = gr.Gallery(label="Output images", columns=5)
+                func2_output_gallery = gr.Gallery(label="Output images", columns=5, interactive=False)
 
         func2_btn_submit.click(fn=search_query,
                                inputs=[func2_input_text_kor, func2_input_count],
@@ -129,7 +130,27 @@ with gr.Blocks() as demo :
                                                                       concurrency_id='default')
         
 
-    # with gr.Tab("text with image search (pic2word)") :
+    with gr.Tab("text with image search (pic2word)") :
+        with gr.Row() :
+            with gr.Column() :
+                func3_input_text_kor = gr.Text(label="Input (Kor)", info="한국어로 질문을 입력하세요", value="there exists 박가을")
+                func3_input_count = gr.Slider(label="Max count", info="응답받는 최대 개수를 설정합니다.", minimum=1, maximum=100, step=1, value=5)
+                func3_input_paths = gr.Textbox(label="Target paths", info="대상으로 하는 이미지 경로", lines=10, value=get_target_paths('sample'))
+                func3_btn_submit = gr.Button(value="Submit", variant='primary')
+
+            with gr.Column() :
+                func3_output_text_en = gr.Text(label="Input (En)", info="한국어를 영어로 번역", interactive=False)
+                func3_output_img = gr.Image(label='Character image', interactive=False)
+                func3_output_list = gr.Json(label="Outpus")
+                func3_output_gallery = gr.Gallery(label="Output images", columns=5, interactive=False)
+
+        func3_btn_submit.click(fn=do_retrieve,
+                               inputs=[func3_input_text_kor, func3_input_paths, func3_input_count],
+                               outputs=[func3_output_text_en, func3_output_img, func3_output_list],
+                               concurrency_id='default').then(fn=parsing_json_for_display,
+                                                              inputs=[func3_output_list],
+                                                              outputs=[func3_output_gallery],
+                                                              concurrency_id='default')
 
 demo.title = "웹툰검색데모"
 demo.queue(default_concurrency_limit=1)

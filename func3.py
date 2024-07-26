@@ -3,9 +3,11 @@ import torch
 from PIL import Image
 from pathlib import Path
 from typing import Callable
-import os
+import ast
+from googletrans import Translator
+import os, glob
 import sys
-sys.path.append('./pic2word/code')
+sys.path.append('./func3_pic2word/code')
 from model.clip import _transform, load
 from model.model import CLIP, IM2TEXT
 from third_party.open_clip.clip import tokenize, _transform
@@ -13,7 +15,7 @@ from third_party.open_clip.clip import tokenize, _transform
 def _normalize(x: torch.Tensor) -> torch.Tensor:
     return x / x.norm(dim=-1, keepdim=True)
 
-SAMPLE_DIR = "./pic2word/code/result"
+SAMPLE_DIR = "./func3_pic2word/code/result"
 ALL_DIR = "../dataset_shared2/orig-result"
 
 class ComposedImageSearchPipeline:
@@ -71,9 +73,8 @@ class ComposedImageSearchPipeline:
         similarity = similarity.squeeze(0)
         return similarity
 
-
 def load_models(model_id: str = 'ViT-L/14',
-                ckpt: str | Path = './pic2word/pic2word_model.pt',
+                ckpt: str | Path = './func3_pic2word/pic2word_model.pt',
                 ) -> tuple[CLIP, IM2TEXT, Callable[[Image.Image], torch.Tensor]]:
     model, preprocess_train, preprocess_val = load(model_id, jit=False)
     img2text = IM2TEXT(embed_dim=model.embed_dim,
@@ -98,7 +99,7 @@ model, img2text, transform = load_models()
 
 CHARACTER_EMBEDDING_DICT: dict[str, Image.Image] = {
     p.stem: Image.open(p)
-    for p in Path("./pic2word/code/character_image_embeddings").glob("*.png")
+    for p in Path("./func3_pic2word/code/character_image_embeddings").glob("*.png")
 }
 
 MAIN_CHARACTERS: list[str] = [*CHARACTER_EMBEDDING_DICT.keys()]
@@ -110,19 +111,30 @@ def get_composed_query(query: str) -> tuple[str, Image.Image]:
             return query, character_img
     raise TypeError()
 
-
 # type : sample or all
-def do_retrieve(query: str, type: str, k: int) :
+def get_target_paths(type: str) :
     if type == 'sample' :
-        retrieve_pipe = ComposedImageSearchPipeline(model, img2text,
-                                                    target_image_paths=[*Path(SAMPLE_DIR).glob("*/*.jpg")],
-                                                    transform=transform)
+        target_paths = sorted(glob.glob(f'{SAMPLE_DIR}/**/*.jpg', recursive=True))
+        target_paths = ['/'.join(sample_path.split('/')[-2:]) for sample_path in target_paths]
     else :
-        retrieve_pipe = ComposedImageSearchPipeline(model, img2text,
-                                                    target_image_paths=[*Path(ALL_DIR).glob("*/*.jpg")],
-                                                    transform=transform)
+        target_paths = sorted(glob.glob(f'{ALL_DIR}/**/*.jpg', recursive=True))
+        target_paths = ['/'.join(all_path.split('/')[-2:]) for all_path in target_paths]
+    return target_paths
+
+def do_retrieve(query: str, target_paths: str, k: int) :
+    target_paths = ast.literal_eval(target_paths)
+
+    paths = [os.path.join(ALL_DIR, target_path) for target_path in target_paths]
+    retrieve_pipe = ComposedImageSearchPipeline(model, img2text,
+                                                target_image_paths=paths,
+                                                transform=transform)
 
     query, character_img = get_composed_query(query)
+
+    # 한국어 -> 번역 번역
+    translator = Translator()
+    query = translator.translate(query, src='ko', dest='en').text
+
     similarities = retrieve_pipe.search(character_img, prompt=query)
     similarities = similarities.cpu().tolist()
     results = sorted(zip(similarities, retrieve_pipe.target_image_paths),
@@ -133,19 +145,21 @@ def do_retrieve(query: str, type: str, k: int) :
     for sim, img_path in results :
         info = {}
 
-        info['image_path'] = f"{img_path.parent.stem}/{img_path.name}"
-        info['episode'] = int(img_path.parent.stem)
-        info['num'] = int(os.path.splitext(img_path.name)[0])
+        episode, basename = img_path.split('/')[-2:]
+        num, _ = os.path.splitext(basename)
+
+        info['image_path'] = f"{episode}/{num}.jpg"
+        info['episode'] = int(episode)
+        info['num'] = int(num)
         info['similarity'] = sim
 
         outputs.append(info)
 
-    return retrieve_pipe.target_image_paths, character_img, outputs
+    return query, character_img, outputs
 
-t = do_retrieve("there exists 박가을", type='sample')
-t
-
-
+# target_paths = get_target_paths('sample')
+# t = do_retrieve("there exists 박가을", target_paths=target_paths, k=5)
+# t
 
 # @app.post("/retrieve")
 # def retrieve(req: RetrieveRequest):
