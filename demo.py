@@ -193,33 +193,6 @@ with gr.Blocks() as demo :
                                                               outputs=[final_output_gallery],
                                                               concurrency_id='default',
                                                               show_api=False)
-        
-    # with gr.Tab("text and image search (clip-retrieval)") :
-    #     with gr.Row() :
-    #         with gr.Column() :
-    #             func4_input_text_kor = gr.Text(label="Input (Kor)", info="한국어로 질문을 입력하세요", value="한 학생이 울고 있는 장면")
-    #             func4_radio = gr.Radio(label="등장인물 선택", choices=["강효민", "박가을", "차태석", "한유현", "황윤혜"], value="강효민")
-    #             func4_input_count1 = gr.Slider(label="Max count 1", info="텍스트 검색의 최대 개수를 설정합니다.", minimum=1, maximum=300, step=1, value=100)
-    #             func4_input_count2 = gr.Slider(label="Max count 2", info="이미지 검색의 최대 개수를 설정합니다.", minimum=1, maximum=100, step=1, value=50)
-    #             func4_input_count3 = gr.Slider(label="Max count 3", info="최종 응답의 최대 개수를 설정합니다.", minimum=1, maximum=100, step=1, value=10)
-    #             func4_btn_submit = gr.Button(value="Submit", variant='primary')
-
-    #         with gr.Column() :
-    #             func4_output_text_en = gr.Text(label="Input (En)", info="한국어를 영어로 번역", interactive=False)
-    #             func4_output_img = gr.Image(interactive=False)
-    #             func4_output_list = gr.Json(label="Outpus")
-    #             func4_output_gallery = gr.Gallery(label="Output images", columns=5)
-
-    #     func4_btn_submit.click(fn=search_by_text,
-    #                            inputs=[func4_input_text_kor, func4_radio, func4_input_count1, func4_input_count2, func4_input_count3],
-    #                            outputs=[func4_output_text_en, func4_output_img, func4_output_list],
-    #                            concurrency_id='default',
-    #                            api_name='search_by_text_and_').then(fn=parsing_json_for_display,
-    #                                                           inputs=[func1_output_list],
-    #                                                           outputs=[func1_output_gallery],
-    #                                                           concurrency_id='default',
-    #                                                           show_api=False)
-
 
 demo.title = "웹툰검색데모"
 demo.queue(default_concurrency_limit=1)

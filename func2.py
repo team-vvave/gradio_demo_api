@@ -8,12 +8,10 @@ from langchain_community.vectorstores import FAISS
 from langchain_huggingface import HuggingFaceEmbeddings
 embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/LaBSE")
 
-
 def read_json_file(file_path):
     with open(file_path, 'r', encoding='utf-8') as file:
         data = json.load(file)
     return data
-
 
 def load_scene_data(data_path):
     list_of_documents = []
@@ -27,7 +25,6 @@ def load_scene_data(data_path):
         document = Document(page_content=desc, metadata=dict(webtoon_num=webtoon_num, cut_num=cut_num))
         list_of_documents.append(document)
     return list_of_documents
-
 
 def load_dialogue_data(data_path):
     list_of_documents = []
