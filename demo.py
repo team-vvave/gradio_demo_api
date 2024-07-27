@@ -60,7 +60,7 @@ def api_search_by_final(req_json: TextItem) :
     text_kor = req_json.text_kor
 
     client = Client(f"http://localhost:{args.port}/demo")
-    middle_text, search_list = client.predict(api_name="/search_by_final", input_text_kor=text_kor)
+    middle_text, _, search_list = client.predict(api_name="/search_by_final", input_text_kor=text_kor)
     return {"middle_text": middle_text,
             "search_list" : search_list}
 
@@ -87,7 +87,7 @@ def search_by_final(input_text_kor) :
                 text_en, search_list = search_by_text(scene, input_count=5)
                 char_img = None
             else :
-                text_en, char_img, search_list = search_by_text_and_image(scene, target_character, 1000, 1000, 5)
+                text_en, char_img, search_list = search_by_text_and_image(scene, target_character, 500, 500, 5)
         else :
             text_en, search_list = search_by_text(scene, input_count=5)
             char_img = None
@@ -178,8 +178,9 @@ with gr.Blocks() as demo :
                 final_btn_submit = gr.Button(value="Submit", variant='primary')
 
             with gr.Column() :
-                middle_text = gr.Text(label="Middle text", info="중간 과정의 텍스트")
-                final_output_img = gr.Image()
+                with gr.Row() :
+                    middle_text = gr.Text(label="Middle text", info="중간 과정의 텍스트", scale=2)
+                    final_output_img = gr.Image(label="캐릭터 이미지", scale=1, interactive=False)
                 final_output_list = gr.Json(label="Outpus")
                 final_output_gallery = gr.Gallery(label="Output images", columns=5)
 
