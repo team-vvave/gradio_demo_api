@@ -90,6 +90,7 @@ def refine_query(query):
     
     response = openai.ChatCompletion.create(
         max_tokens=256,
+        temperature=0.0,
         response_format = {"type": "json_object"},
         model="gpt-4-1106-preview",
         messages=[

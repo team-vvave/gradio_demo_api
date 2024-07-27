@@ -9,7 +9,7 @@ from pydantic import BaseModel
 import uvicorn
 import argparse
 
-from func1 import search_by_text
+from func1 import search_by_text, search_by_text_and_image
 from func2 import search_by_dialogue, refine_query
 from func3 import get_target_paths, do_retrieve
 
@@ -20,6 +20,7 @@ parser.add_argument("--workers", type=int, default=1)
 args = parser.parse_args()
 
 IMAGE_DIR = "../dataset_shared2/orig-result"
+CHARACTERS = ["강효민", "박가을", "차태석", "한유현", "황윤혜"]
 
 app = FastAPI()
 
@@ -45,7 +46,7 @@ def api_search_by_text(req_json: TextItem) :
           description="대사에 대한 한국어 문장을 입력하면 이미지를 검색합니다.")
 def api_search_by_dialogue(req_json: TextItem) :
     text_kor = req_json.text_kor
-    count = 5
+    count = 2
 
     client = Client(f"http://localhost:{args.port}/demo")
     search_list = client.predict(api_name="/search_by_dialogue", 
@@ -57,26 +58,41 @@ def api_search_by_dialogue(req_json: TextItem) :
           description="한국어 문장을 입력하면 이미지를 검색합니다.")
 def api_search_by_final(req_json: TextItem) :
     text_kor = req_json.text_kor
-    count = 5
 
     client = Client(f"http://localhost:{args.port}/demo")
-    middle_text, search_list = client.predict(api_name="/search_by_final", 
-                                 input_text_kor=text_kor, input_count=count)
+    middle_text, search_list = client.predict(api_name="/search_by_final", input_text_kor=text_kor)
     return {"middle_text": middle_text,
             "search_list" : search_list}
 
-def final_search(input_text_kor, input_count) :
+def search_by_final(input_text_kor) :
     query_info_dict = refine_query(input_text_kor)
     scene = query_info_dict["장면"]
     dialogue = query_info_dict["대사"]
     character = query_info_dict["등장인물"]
 
+    if dialogue in ['None', 'none', 'Null', 'null'] : dialogue = None
+
     if dialogue :        
-        search_list = search_by_dialogue(query=dialogue, count=input_count)
-        return f'{query_info_dict}\n[search_by_dialogue]', search_list
-    else:        
-        text_en, search_list = search_by_text(input_text_kor=scene, input_count=input_count)
-        return f'{query_info_dict}\n[search_by_text]\n{text_en}', search_list
+        search_list = search_by_dialogue(query=dialogue, count=2)
+        return f'{query_info_dict}\n[search_by_dialogue]', None, search_list
+    else :
+        if type(character) == list :
+            target_character = None
+            for CHARACTER in CHARACTERS :
+                if CHARACTER in character :
+                    target_character = CHARACTER
+                    break
+
+            if target_character == None :
+                text_en, search_list = search_by_text(scene, input_count=5)
+                char_img = None
+            else :
+                text_en, char_img, search_list = search_by_text_and_image(scene, target_character, 1000, 1000, 5)
+        else :
+            text_en, search_list = search_by_text(scene, input_count=5)
+            char_img = None
+            
+        return f'{query_info_dict}\n[search_by_text]\n{text_en}', char_img, search_list
 
 def parsing_json_for_display(search_list) :
     outputs = []
@@ -159,23 +175,50 @@ with gr.Blocks() as demo :
         with gr.Row() :
             with gr.Column() :
                 final_input_text_kor = gr.Text(label="Input (Kor)", info="한국어로 질문을 입력하세요", value="안경 낀 사람 때리면 살인 대사 몇화인지 알려주세요")
-                final_input_count = gr.Slider(label="Max count", info="응답받는 최대 개수를 설정합니다.", minimum=1, maximum=100, step=1, value=5)
                 final_btn_submit = gr.Button(value="Submit", variant='primary')
 
             with gr.Column() :
                 middle_text = gr.Text(label="Middle text", info="중간 과정의 텍스트")
+                final_output_img = gr.Image()
                 final_output_list = gr.Json(label="Outpus")
                 final_output_gallery = gr.Gallery(label="Output images", columns=5)
 
-        final_btn_submit.click(fn=final_search,
-                               inputs=[final_input_text_kor, final_input_count],
-                               outputs=[middle_text, final_output_list],
+        final_btn_submit.click(fn=search_by_final,
+                               inputs=[final_input_text_kor],
+                               outputs=[middle_text, final_output_img, final_output_list],
                                concurrency_id='default',
                                api_name='search_by_final').then(fn=parsing_json_for_display,
                                                               inputs=[final_output_list],
                                                               outputs=[final_output_gallery],
                                                               concurrency_id='default',
                                                               show_api=False)
+        
+    # with gr.Tab("text and image search (clip-retrieval)") :
+    #     with gr.Row() :
+    #         with gr.Column() :
+    #             func4_input_text_kor = gr.Text(label="Input (Kor)", info="한국어로 질문을 입력하세요", value="한 학생이 울고 있는 장면")
+    #             func4_radio = gr.Radio(label="등장인물 선택", choices=["강효민", "박가을", "차태석", "한유현", "황윤혜"], value="강효민")
+    #             func4_input_count1 = gr.Slider(label="Max count 1", info="텍스트 검색의 최대 개수를 설정합니다.", minimum=1, maximum=300, step=1, value=100)
+    #             func4_input_count2 = gr.Slider(label="Max count 2", info="이미지 검색의 최대 개수를 설정합니다.", minimum=1, maximum=100, step=1, value=50)
+    #             func4_input_count3 = gr.Slider(label="Max count 3", info="최종 응답의 최대 개수를 설정합니다.", minimum=1, maximum=100, step=1, value=10)
+    #             func4_btn_submit = gr.Button(value="Submit", variant='primary')
+
+    #         with gr.Column() :
+    #             func4_output_text_en = gr.Text(label="Input (En)", info="한국어를 영어로 번역", interactive=False)
+    #             func4_output_img = gr.Image(interactive=False)
+    #             func4_output_list = gr.Json(label="Outpus")
+    #             func4_output_gallery = gr.Gallery(label="Output images", columns=5)
+
+    #     func4_btn_submit.click(fn=search_by_text,
+    #                            inputs=[func4_input_text_kor, func4_radio, func4_input_count1, func4_input_count2, func4_input_count3],
+    #                            outputs=[func4_output_text_en, func4_output_img, func4_output_list],
+    #                            concurrency_id='default',
+    #                            api_name='search_by_text_and_').then(fn=parsing_json_for_display,
+    #                                                           inputs=[func1_output_list],
+    #                                                           outputs=[func1_output_gallery],
+    #                                                           concurrency_id='default',
+    #                                                           show_api=False)
+
 
 demo.title = "웹툰검색데모"
 demo.queue(default_concurrency_limit=1)
