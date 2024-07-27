@@ -131,7 +131,7 @@ def do_retrieve(query: str, target_paths: str, k: int) :
 
     query, character_img = get_composed_query(query)
 
-    # 한국어 -> 번역 번역
+    # 한국어 -> 영어 번역
     translator = Translator()
     query = translator.translate(query, src='ko', dest='en').text
 
@@ -156,51 +156,3 @@ def do_retrieve(query: str, target_paths: str, k: int) :
         outputs.append(info)
 
     return query, character_img, outputs
-
-# target_paths = get_target_paths('sample')
-# t = do_retrieve("there exists 박가을", target_paths=target_paths, k=5)
-# t
-
-# @app.post("/retrieve")
-# def retrieve(req: RetrieveRequest):
-#     query, character_img = get_composed_query(req.query)
-#     similarities = retrieve_pipe.search(character_img, prompt=query)
-#     similarities = similarities.cpu().tolist()
-#     results = sorted(zip(similarities, retrieve_pipe.target_image_paths),
-#                      key=lambda x: x[0],
-#                      reverse=True)[:10]
-#     return [
-#         {
-#             "score": sim,
-#             "ep": img_path.parent.stem,
-#             "cut": img_path.name,
-#         }
-#         for sim, img_path in results
-#     ]
-
-
-# @app.post("/rerank")
-# def rerank(req: RerankRequest):
-
-#     target_image_paths = [Path("/code/result")/tgt_img.ep/tgt_img.cut
-#                           for tgt_img in req.target_images]
-#     rerank_pipe = ComposedImageSearchPipeline(model,
-#                                               img2text,
-#                                               target_image_paths=target_image_paths,
-#                                               transform=transform)
-
-#     query, character_img = get_composed_query(req.query)
-#     print(query)
-#     similarities = rerank_pipe.search(character_img, prompt=query)
-#     similarities = similarities.cpu().tolist()
-#     results = sorted(zip(similarities, target_image_paths),
-#                      key=lambda x: x[0],
-#                      reverse=True)[:10]
-#     return [
-#         {
-#             "score": sim,
-#             "ep": img_path.parent.stem,
-#             "cut": img_path.name,
-#         }
-#         for sim, img_path in results
-#     ]

@@ -1,11 +1,11 @@
 import os
 import json
 import openai
-with open("secret.txt", 'r') as f :
-    openai.api_key = f.readline().strip()
 from langchain_core.documents import Document
 from langchain_community.vectorstores import FAISS
 from langchain_huggingface import HuggingFaceEmbeddings
+with open("secret.txt", 'r') as f :
+    openai.api_key = f.readline().strip()
 embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/LaBSE")
 
 def read_json_file(file_path):
